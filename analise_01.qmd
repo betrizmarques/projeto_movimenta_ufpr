@@ -1,0 +1,144 @@
+---
+title: "Pesquisa - Movimenta UFPR"
+format: pdf
+editor: visual
+theme: cosmo
+---
+
+## Carregar os dados e bibliotecas
+```{r, results='hide'}
+library(tidyverse)
+library(janitor)
+library(lme4)
+library(lmerTest)
+library(rstatix)
+library(ggplot2)
+library(readxl)
+
+dados <- read_excel("Dados_06.07.xlsx") %>% clean_names() %>% 
+  type.convert(as.is = TRUE)
+
+dicionario <- read_excel("Dados_06.07.xlsx", sheet = 2) 
+```
+
+## Validação de paces semana 0
+
+```{r}
+validacao_paces <- dados %>% 
+  select(codigo, l1_s0, l2_s0, d_21km_s16_real_vm, maratona_km_h_real, vc_s4_real) %>% 
+  drop_na() %>% 
+  pivot_longer(cols = -codigo, names_to = "pace_tipo", values_to = "velocidade")
+
+validacao_paces
+```
+
+
+O teste Friedman é um teste não paramétrico e é usado para comparar três ou mais grupos.
+Ele é ideal aqui, pois temos 30 atletas em semanas diferentes e correndo distâncias diferentes.
+Ele ;e diferente da ANOVA, pois é não-paramétrico e funciona com amostras bem pequenas.
+
+A fórmula do teste é o seguinte:
+$$\chi_r^2 = \left[ \frac{12}{n \cdot k \cdot (k + 1)} \sum_{j=1}^{k} R_j^2 \right] - 3 \cdot n \cdot (k + 1)$$
+$n$ = Número de atletas
+$k$ = Número de variáveis
+$R_j$ = soma dos postos de cada variável
+
+
+```{r} 
+teste_friedman <- validacao_paces %>% friedman_test(velocidade ~ pace_tipo | codigo)
+teste_friedman
+```
+
+Porém esse teste não aponta onde estão essas diferenças.
+
+Para comparar variável por variável, em pares, utiliza-se o teste Wilcoxon.
+
+```{r}
+pares_wilcox <- validacao_paces %>% 
+  pairwise_wilcox_test(velocidade ~ pace_tipo, paired = TRUE, p.adjust.method = "bonferroni")
+pares_wilcox %>% select(-n1, -n2, -p)
+```
+## Validação de velocidade por distãncia 
+```{r}
+validacao_distancias <- dados %>%
+  select(codigo, t1000_s4_km_h, t2000_s4_km_h, t3000_s4_km_h) %>%
+  drop_na() %>%
+  pivot_longer(cols = -codigo, names_to = "distancia", values_to = "velocidade")
+
+friedman_dist <- validacao_distancias %>% friedman_test(velocidade ~ distancia | codigo)
+
+friedman_dist
+```
+
+
+## Validação de teste máximo
+
+Aqui contamos a quantidade de atletas que tiveram uma velocidade média menor ao correr 1km depois de 21km do que 1km fresco. Isso valida o teste máximo.
+```{r}
+teste_esforco_s0 <- t.test(dados$x1km_fresco_vm_s0, dados$x1km_pos_vm_s0, paired = TRUE)
+teste_esforco_s0
+
+dados <- dados %>%
+  mutate(esforco_valido_S0 = ifelse(x1km_fresco_vm_s0 > x1km_pos_vm_s0, "Válido", "Suspeito"))
+
+table(dados$esforco_valido_S0)
+
+nrow(dados %>% filter(esforco_valido_S0 == "Válido"))/nrow(dados %>% filter(!is.na(codigo)))
+```
+
+## Modelo misto
+O Modelo Linear Misto combina os efeitos fixos co os efeitos aleatórios.
+Efeitos fixos: grupo, semana, grupo * semana.
+
+Efeito aleatório: codigo, que é o atleta individual. eles são independentes entre si, são únicos.
+Isso faz com que o modelo reconheça que os atletas podem ter um ponto de partida diferente, diferente de uma ANOVA de Medidas Repetidas que trata a variação entre os atletas de forma rígida.
+
+
+```{r}
+dados_longos <- dados %>%
+  select(codigo, grupo, 
+         d_21km_s0_real, d_21km_s4_real, d_21km_s8_real, d_21km_s12_real, d_21km_s16_real_vm) %>%
+  pivot_longer(
+    cols = starts_with("d_21km_"),
+    names_to = "semana",
+    names_pattern = "d_21km_(s\\d+)_real",
+    values_to = "velocidade_21k"
+  ) %>%
+  mutate(
+    semana = factor(semana, levels = c("s0", "s4", "s8", "s12", "s16")),
+    grupo = factor(grupo) 
+  )
+
+dados_longos
+
+
+modelo_misto <- lmer(velocidade_21k ~ grupo * semana + (1 | codigo), data = dados_longos)
+summary(modelo_misto)
+anova(modelo_misto)
+```
+
+# Análise da queda de velocidade
+```{r}
+dados_longos %>%
+  filter(!is.na(velocidade_21k)) %>%
+  group_by(grupo, semana) %>%
+  summarise(
+    media = mean(velocidade_21k),
+    erro_padrao = sd(velocidade_21k) / sqrt(n()),
+    .groups = 'drop'
+  ) %>%
+  ggplot(aes(x = semana, y = media, group = grupo, color = grupo)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = media - erro_padrao, ymax = media + erro_padrao), width = 0.15) +
+  labs(
+    title = "Evolução da velocidade nos 21km por sequência de treino",
+    x = "Semana",
+    y = "Velocidade média nos 21km",
+    color = "Sequência"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+
+

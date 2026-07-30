@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Análise exploratória dos dados - Movimenta UFPR</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="analise_02_files/libs/clipboard/clipboard.min.js"></script>
+<script src="analise_02_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="analise_02_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="analise_02_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="analise_02_files/libs/quarto-html/popper.min.js"></script>
+<script src="analise_02_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="analise_02_files/libs/quarto-html/anchor.min.js"></script>
+<link href="analise_02_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="analise_02_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="analise_02_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="analise_02_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="analise_02_files/libs/bootstrap/bootstrap-a74871fe4945b66d259aafc266475145.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Análise exploratória dos dados - Movimenta UFPR</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lme4)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lmerTest)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstatix)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(hms)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>dados <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"Dados_06.07.xlsx"</span>) <span class="sc">%&gt;%</span> <span class="fu">clean_names</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">type.convert</span>(<span class="at">as.is =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">drop_na</span>(codigo) <span class="sc">|&gt;</span>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    maratona_pace_km1,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    maratona_fc_km1,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    maratona_percent_vc_fc,</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">starts_with</span>(<span class="st">"fazer_as"</span>))) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">maratona_tempo =</span> <span class="fu">as.double</span>(maratona_tempo),</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">maratona_tempo =</span> <span class="fu">as_hms</span>(maratona_tempo <span class="sc">*</span> <span class="dv">86400</span>),</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">maratona_tempo =</span> <span class="fu">format</span>(<span class="fu">as.POSIXct</span>(maratona_tempo), <span class="st">"%H:%M:%S"</span>),</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>                                        <span class="at">maratona_menos_4h =</span> <span class="fu">ifelse</span>(<span class="fu">as_hms</span>(maratona_tempo) <span class="sc">&lt;</span> <span class="fu">as_hms</span>(<span class="st">"04:00:00"</span>), <span class="st">"menos de 4h"</span>, <span class="st">"4h ou mais"</span>))</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>dicionario <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"Dados_06.07.xlsx"</span>, <span class="at">sheet =</span> <span class="dv">2</span>) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="estrutura-dos-dados" class="level1">
+<h1>Estrutura dos dados</h1>
+<p>Quantidade de atletas:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(dados) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 30</code></pre>
+</div>
+</div>
+<p>Número de variáveis:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ncol</span>(dados)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 237</code></pre>
+</div>
+</div>
+<p>Primeiras 6 linhas dos dados:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(dados)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 237
+  grupo codigo nome  maratona_tempo maratona_km_h_real tt_3_tempo tt_3_km_h_real
+  &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;                       &lt;dbl&gt; &lt;chr&gt;               &lt;dbl&gt;
+1 G1    G1_01  Alci… 04:17:01                     9.85 8.4560185…           10.4
+2 G1    G1_02  Ales… 03:44:04                    11.3  6.8275462…           12.9
+3 G1    G1_03  Aman… 04:08:30                    10.2  8.1493055…           10.8
+4 G1    G1_04  Ana … 03:00:28                    14.0  5.8611111…           15  
+5 G1    G1_05  Andr… 04:35:19                     9.19 7.7187500…           11.4
+6 G1    G1_06  Carl… 03:41:48                    11.4  7.3888888…           11.9
+# ℹ 230 more variables: tt_2_tempo &lt;chr&gt;, tt_2_km_h_real &lt;dbl&gt;,
+#   tt_1_tempo &lt;chr&gt;, tt_1_km_h_real &lt;dbl&gt;, z1_2_tempo &lt;chr&gt;,
+#   z1_2_km_h_real &lt;dbl&gt;, z1_1_tempo &lt;chr&gt;, z1_1_km_h_real &lt;dbl&gt;,
+#   t1000_s12_tempo_real &lt;int&gt;, t1000_s12_km_h &lt;dbl&gt;, t1000_s12_pace &lt;chr&gt;,
+#   t2000_s12_tempo_real &lt;int&gt;, t2000_s12_km_h &lt;dbl&gt;, t2000_s12_pace &lt;chr&gt;,
+#   t3000_s12_tempo_real &lt;int&gt;, t3000_s12_km_h &lt;dbl&gt;, t3000_s12_pace &lt;chr&gt;,
+#   vc_s12_real &lt;dbl&gt;, d_s12_real &lt;dbl&gt;, r_s12 &lt;dbl&gt;, rmse_s12 &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p>Variáveis e seus tipos:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(dados)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 30
+Columns: 237
+$ grupo                   &lt;chr&gt; "G1", "G1", "G1", "G1", "G1", "G1", "G1", "G1"…
+$ codigo                  &lt;chr&gt; "G1_01", "G1_02", "G1_03", "G1_04", "G1_05", "…
+$ nome                    &lt;chr&gt; "Alcione", "Alessandro", "Amanda", "Ana Munaro…
+$ maratona_tempo          &lt;chr&gt; "04:17:01", "03:44:04", "04:08:30", "03:00:28"…
+$ maratona_km_h_real      &lt;dbl&gt; 9.85, 11.30, 10.19, 14.03, 9.19, 11.41, 12.95,…
+$ tt_3_tempo              &lt;chr&gt; "8.4560185185185183E-2", "6.8275462962962968E-…
+$ tt_3_km_h_real          &lt;dbl&gt; 10.40, 12.88, 10.79, 15.00, 11.39, 11.90, 14.1…
+$ tt_2_tempo              &lt;chr&gt; "1899-12-31 02:08:00", "1899-12-31 01:47:25", …
+$ tt_2_km_h_real          &lt;dbl&gt; 9.89, 11.79, 10.29, 14.72, 11.08, 10.93, 13.87…
+$ tt_1_tempo              &lt;chr&gt; "1899-12-31 02:11:10", "1899-12-31 01:49:06", …
+$ tt_1_km_h_real          &lt;dbl&gt; 9.65, 11.60, 10.61, 14.10, 10.55, 9.06, 12.17,…
+$ z1_2_tempo              &lt;chr&gt; "1899-12-31 02:10:21", "1899-12-31 01:47:25", …
+$ z1_2_km_h_real          &lt;dbl&gt; 9.71, 11.79, 10.29, 12.57, 10.36, 9.71, 12.18,…
+$ z1_1_tempo              &lt;chr&gt; "1899-12-31 02:14:00", "1899-12-31 01:54:32", …
+$ z1_1_km_h_real          &lt;dbl&gt; 9.45, 11.05, 9.36, 12.20, 10.54, 9.42, 11.27, …
+$ t1000_s12_tempo_real    &lt;int&gt; 265, 258, 281, 191, 271, 248, 199, 237, 204, 1…
+$ t1000_s12_km_h          &lt;dbl&gt; 13.33, 13.95, 12.81, 18.85, 13.28, 14.52, 18.0…
+$ t1000_s12_pace          &lt;chr&gt; "1899-12-31 04:25:00", "1899-12-31 04:18:00", …
+$ t2000_s12_tempo_real    &lt;int&gt; 595, 528, 617, 419, 555, 570, 432, 531, 457, 4…
+$ t2000_s12_km_h          &lt;dbl&gt; 12.10, 13.64, 11.67, 17.18, 12.97, 12.63, 16.6…
+$ t2000_s12_pace          &lt;chr&gt; "1899-12-31 04:58:00", "1899-12-31 04:24:00", …
+$ t3000_s12_tempo_real    &lt;int&gt; 927, 810, 848, 657, 855, 849, 655, 805, 704, 6…
+$ t3000_s12_km_h          &lt;dbl&gt; 11.65, 13.33, 12.74, 16.44, 12.63, 12.72, 16.4…
+$ t3000_s12_pace          &lt;chr&gt; "1899-12-31 05:09:00", "1899-12-31 04:30:00", …
+$ vc_s12_real             &lt;dbl&gt; 11.44, 13.40, 12.60, 15.40, 12.30, 12.40, 16.4…
+$ d_s12_real              &lt;dbl&gt; 114.00, 72.80, 33.80, 182.10, 75.40, 171.80, 8…
+$ r_s12                   &lt;dbl&gt; 0.99980, 0.99984, 0.99786, 0.99996, 0.99992, 0…
+$ rmse_s12                &lt;dbl&gt; 4.0, 2.8, 11.7, 1.3, 2.0, 4.6, 2.1, 2.1, 1.8, …
+$ t1000_s4_tempo_real     &lt;chr&gt; "280", "253", "278", "208", "261", "271", "205…
+$ t1000_s4_km_h           &lt;dbl&gt; 12.86, 14.23, 12.95, 17.31, 13.79, 13.28, 17.5…
+$ t1000_s4_pace           &lt;chr&gt; "1899-12-31 04:40:00", "1899-12-31 04:13:00", …
+$ t2000_s4_tempo_real     &lt;int&gt; 617, 526, 593, 436, 574, 555, 444, 545, 465, 4…
+$ t2000_s4_km_h           &lt;dbl&gt; 11.67, 13.69, 12.14, 16.51, 12.54, 12.97, 16.2…
+$ t2000_s4_pace           &lt;chr&gt; "1899-12-31 05:09:00", "1899-12-31 04:23:00", …
+$ t3000_s4_tempo_real     &lt;int&gt; 912, 810, 924, 676, 860, 845, 693, 822, 719, 6…
+$ t3000_s4_km_h           &lt;dbl&gt; 11.84, 13.33, 11.69, 15.98, 12.56, 12.78, 15.5…
+$ t3000_s4_pace           &lt;chr&gt; "1899-12-31 05:04:00", "1899-12-31 04:30:00", …
+$ vc_s4_real              &lt;dbl&gt; 11.40, 12.90, 11.10, 15.40, 12.00, 12.54, 14.8…
+$ d_s4_real               &lt;dbl&gt; 94.6, 98.4, 140.0, 112.8, 124.8, 59.3, 158.4, …
+$ r_s4                    &lt;dbl&gt; 0.99856, 0.99987, 0.99948, 0.99993, 0.99911, 0…
+$ rmse_s4                 &lt;dbl&gt; 9.9, 2.6, 6.3, 2.2, 7.1, 4.9, 2.9, 2.7, 2.5, 1…
+$ x1km_fresco_tempo_s0    &lt;int&gt; 300, 251, 296, 199, 274, 301, 236, 255, 221, 2…
+$ x1km_fresco_oficial_s0  &lt;chr&gt; "1899-12-31 05:00:00", "1899-12-31 04:11:00", …
+$ x1km_fresco_vm_s0       &lt;dbl&gt; 12.00, 14.35, 12.10, 18.07, 13.10, 11.98, 15.2…
+$ d_21km_s0_real_tempo    &lt;chr&gt; "1899-12-31 02:11:10", "1899-12-31 01:49:06", …
+$ d_21km_s0_real          &lt;dbl&gt; 9.65, 11.60, 10.61, 14.10, 10.55, 9.06, 12.17,…
+$ x1km_pos_tempo_s0       &lt;int&gt; 330, 316, 292, 236, 331, 316, 297, 287, 277, 2…
+$ x1km_pos_original_s0    &lt;chr&gt; "1899-12-31 05:30:00", "1899-12-31 05:16:00", …
+$ x1km_pos_vm_s0          &lt;dbl&gt; 10.91, 11.39, 12.30, 15.25, 10.88, 11.39, 12.7…
+$ queda_s0                &lt;dbl&gt; -9.1, -20.6, -1.7, -15.6, -17.0, -4.9, -16.3, …
+$ x1km_fresco_tempo_s4    &lt;int&gt; 280, 253, 278, 208, 261, 271, 205, 255, 213, 1…
+$ x1km_fresco_oficial_s4  &lt;chr&gt; "1899-12-31 04:40:00", "1899-12-31 04:13:00", …
+$ x1km_fresco_vm_s4       &lt;dbl&gt; 12.86, 14.23, 12.90, 17.31, 13.79, 13.28, 17.6…
+$ d_21km_s4_real_tempo    &lt;chr&gt; "1899-12-31 02:14:00", "1899-12-31 01:54:32", …
+$ d_21km_s4_real          &lt;dbl&gt; 9.45, 11.05, 9.36, 12.20, 10.54, 9.42, 11.27, …
+$ x1km_pos_tempo_s4       &lt;int&gt; 297, 289, 296, 203, 289, 333, 209, 270, 234, 2…
+$ x1km_pos_original_s4    &lt;chr&gt; "1899-12-31 04:57:00", "1899-12-31 04:49:00", …
+$ x1km_pos_vm_s4          &lt;dbl&gt; 12.12, 12.53, 12.10, 17.58, 12.53, 10.87, 17.2…
+$ queda_s4                &lt;dbl&gt; -5.8, -11.9, -6.2, 2.0, -8.9, -17.9, -2.2, -5.…
+$ x1km_fresco_tempo_s8    &lt;int&gt; 271, 241, 278, 190, 263, 272, 196, 232, 203, 1…
+$ x1km_fresco_oficial_s8  &lt;chr&gt; "1899-12-31 04:31:00", "1899-12-31 04:01:00", …
+$ x1km_fresco_vm_s8       &lt;dbl&gt; 13.25, 14.99, 12.90, 18.75, 13.62, 13.16, 18.2…
+$ d_21km_s8_real_tempo    &lt;chr&gt; "1899-12-31 02:08:00", "1899-12-31 01:47:25", …
+$ d_21km_s8_real          &lt;dbl&gt; 9.89, 11.79, 10.29, 14.72, 11.08, 10.93, 13.87…
+$ x1km_pos_tempo_s8       &lt;int&gt; 315, 313, 293, 216, 286, 293, 227, 264, 249, 2…
+$ x1km_pos_original_s8    &lt;chr&gt; "1899-12-31 05:15:00", "1899-12-31 05:13:00", …
+$ x1km_pos_vm_s8          &lt;dbl&gt; 11.43, 11.51, 12.17, 16.67, 12.00, 12.22, 15.8…
+$ queda_s8                &lt;dbl&gt; -13.7, -23.2, -5.7, -11.1, -11.9, -7.1, -13.6,…
+$ x1km_fresco_tempo_s12   &lt;int&gt; 265, 258, 281, 191, 271, 248, 199, 237, 204, 1…
+$ x1km_fresco_oficial_s12 &lt;chr&gt; "1899-12-31 04:25:00", "1899-12-31 04:18:00", …
+$ x1km_fresco_vm_s12      &lt;dbl&gt; 13.33, 13.95, 12.84, 18.75, 13.30, 14.52, 17.4…
+$ d_21km_s12_real_tempo   &lt;chr&gt; "1899-12-31 02:10:21", "1899-12-31 01:47:25", …
+$ d_21km_s12_real         &lt;dbl&gt; 9.71, 11.79, 10.29, 12.57, 10.36, 9.71, 12.18,…
+$ x1km_pos_tempo_s12      &lt;int&gt; 303, 274, 296, 224, 297, 258, 226, 253, 227, 2…
+$ x1km_pos_original_s12   &lt;chr&gt; "1899-12-31 05:03:00", "1899-12-31 04:34:00", …
+$ x1km_pos_vm_s12         &lt;dbl&gt; 11.95, 13.13, 12.10, 15.96, 12.12, 14.08, 15.5…
+$ queda_s12               &lt;dbl&gt; -10.4, -5.9, -5.8, -14.9, -8.9, -3.0, -11.2, -…
+$ x1km_fresco_tempo_s16   &lt;int&gt; 278, 249, 280, 201, 263, 247, 216, 258, 198, 1…
+$ x1km_fresco_oficial_s16 &lt;chr&gt; "1899-12-31 04:38:00", "1899-12-31 04:09:00", …
+$ x1km_fresco_vm_s16      &lt;dbl&gt; 12.90, 14.46, 12.86, 17.91, 13.62, 14.62, 16.6…
+$ d_21km_s16_real_tempo   &lt;chr&gt; "8.4560185185185183E-2", "6.8275462962962968E-…
+$ d_21km_s16_real_vm      &lt;dbl&gt; 10.40, 12.88, 10.79, 15.00, 11.39, 11.90, 14.1…
+$ x1km_pos_tempo_s16      &lt;int&gt; 305, 279, 272, 218, 289, 255, 230, 275, 239, 2…
+$ x1km_pos_original_s16   &lt;chr&gt; "1899-12-31 05:05:00", "1899-12-31 04:39:00", …
+$ x1km_pos_vm_s16         &lt;dbl&gt; 11.88, 13.64, 13.16, 17.31, 12.53, 14.12, 15.7…
+$ queda_s16               &lt;dbl&gt; -7.9, -5.7, 2.3, -3.3, -8.0, -3.4, -5.3, -5.7,…
+$ pres_s1                 &lt;int&gt; 44, 44, 44, 53, 44, 44, 53, 44, 44, 53, 53, 44…
+$ reali_s1                &lt;int&gt; 0, 49, 39, 57, 36, 21, 56, 57, 54, 49, 62, 56,…
+$ dif_s1                  &lt;int&gt; -44, 5, -5, 4, -8, -23, 3, 13, 10, -4, 9, 12, …
+$ z1_s1                   &lt;int&gt; 0, 42, 39, 50, 29, 21, 45, 50, 48, 42, 55, 49,…
+$ z2_s1                   &lt;int&gt; 0, 6, 0, 6, 6, 0, 5, 6, 5, 6, 6, 6, 6, 6, 0, 6…
+$ z3_s1                   &lt;int&gt; 0, 1, 0, 1, 1, 0, 6, 1, 1, 1, 1, 1, 1, 1, 5, 1…
+$ percent_z1_s1           &lt;int&gt; NA, 86, 100, 88, 81, 100, 80, 88, 89, 86, 89, …
+$ percent_z2_s1           &lt;int&gt; NA, 12, 0, 11, 17, 0, 9, 11, 9, 12, 10, 11, 13…
+$ percent_z3_s1           &lt;int&gt; NA, 2, 0, 2, 3, 0, 11, 2, 2, 2, 2, 2, 2, 2, 10…
+$ pres_s2                 &lt;int&gt; 47, 47, 47, 56, 47, 47, 56, 47, 47, 56, 56, 47…
+$ reali_s2                &lt;int&gt; 32, 57, 44, 65, 41, 65, 65, 33, 59, 65, 65, 57…
+$ dif_s2                  &lt;int&gt; -15, 10, -3, 9, -6, 18, 9, -14, 12, 9, 9, 10, …
+$ z1_s2                   &lt;int&gt; 32, 40, 38, 48, 24, 48, 49, 16, 49, 48, 48, 40…
+$ z2_s2                   &lt;int&gt; 0, 12, 6, 12, 12, 12, 11, 8, 8, 12, 12, 12, 12…
+$ z3_s2                   &lt;int&gt; 0, 5, 0, 5, 5, 5, 5, 9, 2, 5, 5, 5, 5, 5, 11, …
+$ percent_z1_s2           &lt;int&gt; 100, 70, 86, 74, 59, 74, 76, 49, 82, 74, 74, 7…
+$ percent_z2_s2           &lt;int&gt; 0, 21, 14, 19, 29, 19, 17, 24, 13, 19, 19, 21,…
+$ percent_z3_s2           &lt;int&gt; 0, 8, 0, 7, 12, 7, 7, 27, 4, 7, 7, 8, 15, 7, 1…
+$ pres_s3                 &lt;int&gt; 50, 50, 50, 59, 50, 50, 59, 50, 50, 59, 59, 50…
+$ reali_s3                &lt;int&gt; 68, 44, 29, 68, 68, 68, 56, 56, 65, 48, 68, 47…
+$ dif_s3                  &lt;int&gt; 18, -6, -21, 9, 18, 18, -3, 6, 15, -11, 9, -3,…
+$ z1_s3                   &lt;int&gt; 51, 39, 16, 51, 51, 51, 37, 47, 51, 35, 51, 43…
+$ z2_s3                   &lt;int&gt; 12, 0, 8, 12, 12, 12, 14, 4, 12, 8, 12, 4, 4, …
+$ z3_s3                   &lt;int&gt; 5, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5, 0, 5, 5, 5, 0…
+$ percent_z1_s3           &lt;int&gt; 75, 89, 56, 75, 75, 75, 66, 84, 78, 73, 75, 91…
+$ percent_z2_s3           &lt;int&gt; 18, 0, 28, 18, 18, 18, 25, 7, 18, 17, 18, 9, 7…
+$ percent_z3_s3           &lt;int&gt; 7, 11, 17, 7, 7, 7, 9, 9, 3, 10, 7, 0, 9, 6, 8…
+$ pres_s4                 &lt;int&gt; 37, 37, 37, 45, 37, 37, 45, 37, 37, 45, 45, 37…
+$ reali_s4                &lt;int&gt; 36, 37, 34, 37, 37, 36, 56, 37, 41, 37, 37, 37…
+$ dif_s4                  &lt;int&gt; -1, 0, -3, -8, 0, -1, 11, 0, 4, -8, -8, 0, -22…
+$ z1_s4                   &lt;int&gt; 29, 30, 27, 30, 30, 29, 49, 30, 34, 30, 30, 30…
+$ z2_s4                   &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ z3_s4                   &lt;int&gt; 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 6, 7, 7, 7…
+$ percent_z1_s4           &lt;int&gt; 81, 81, 79, 81, 81, 81, 88, 81, 83, 81, 81, 81…
+$ percent_z2_s4           &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ percent_z3_s4           &lt;int&gt; 19, 19, 21, 19, 19, 19, 13, 19, 17, 19, 19, 19…
+$ pres_s5                 &lt;int&gt; 51, 51, 51, 66, 51, 51, 66, 51, 51, 66, 66, 51…
+$ reali_s5                &lt;int&gt; 51, 51, 51, 66, 51, 51, 51, 51, 50, 66, 66, 51…
+$ dif_s5                  &lt;int&gt; 0, 0, 0, 0, 0, 0, -15, 0, -1, 0, 0, 0, 0, 0, 0…
+$ z1_s5                   &lt;int&gt; 39, 39, 39, 48, 39, 39, 18, 39, 38, 54, 54, 39…
+$ z2_s5                   &lt;int&gt; 8, 8, 8, 13, 8, 8, 29, 8, 8, 8, 8, 8, 8, 13, 1…
+$ z3_s5                   &lt;int&gt; 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 4…
+$ percent_z1_s5           &lt;int&gt; 76, 0, 76, 73, 76, 76, 35, 76, 76, 82, 82, 76,…
+$ percent_z2_s5           &lt;int&gt; 16, 16, 16, 20, 16, 16, 57, 16, 16, 12, 12, 16…
+$ percent_z3_s5           &lt;int&gt; 8, 8, 8, 8, 8, 8, 8, 8, 8, 6, 6, 8, 8, 8, 8, 8…
+$ pres_s6                 &lt;int&gt; 53, 53, 53, 68, 53, 53, 68, 53, 53, 68, 68, 53…
+$ reali_s6                &lt;int&gt; 53, 27, 52, 66, 53, 53, 53, 53, 35, 68, 68, 51…
+$ dif_s6                  &lt;int&gt; 0, -26, -1, -2, 0, 0, -15, 0, -18, 0, 0, -2, -…
+$ z1_s6                   &lt;int&gt; 41, 15, 40, 51, 41, 41, 41, 41, 23, 53, 53, 39…
+$ z2_s6                   &lt;int&gt; 8, 8, 8, 10, 8, 8, 8, 8, 8, 10, 10, 8, 8, 10, …
+$ z3_s6                   &lt;int&gt; 4, 4, 4, 5, 4, 4, 4, 4, 4, 5, 5, 4, 4, 0, 5, 4…
+$ percent_z1_s6           &lt;int&gt; 77, 56, 77, 77, 77, 77, 77, 77, 66, 78, 78, 76…
+$ percent_z2_s6           &lt;int&gt; 15, 30, 15, 15, 15, 15, 15, 15, 23, 15, 15, 16…
+$ percent_z3_s6           &lt;int&gt; 8, 15, 8, 8, 8, 8, 8, 8, 11, 7, 7, 8, 9, 0, 7,…
+$ pres_s7                 &lt;int&gt; 55, 55, 55, 70, 55, 55, 70, 55, 55, 70, 70, 55…
+$ reali_s7                &lt;int&gt; 55, 12, 63, 70, 55, 22, 68, 55, 56, 55, 70, 45…
+$ dif_s7                  &lt;int&gt; 0, -43, 8, 0, 0, -33, -2, 0, 1, -15, 0, -10, -…
+$ z1_s7                   &lt;int&gt; 43, 4, 51, 55, 43, 10, 48, 43, 44, 40, 55, 37,…
+$ z2_s7                   &lt;int&gt; 8, 8, 8, 10, 8, 8, 10, 8, 8, 10, 10, 8, 0, 10,…
+$ z3_s7                   &lt;int&gt; 4, 0, 4, 5, 4, 4, 10, 4, 4, 5, 5, 0, 4, 5, 5, …
+$ percent_z1_s7           &lt;int&gt; 78, 33, 81, 79, 78, 45, 71, 78, 79, 73, 79, 82…
+$ percent_z2_s7           &lt;int&gt; 15, 67, 13, 14, 15, 36, 15, 15, 14, 18, 14, 18…
+$ percent_z3_s7           &lt;int&gt; 7, 0, 6, 7, 7, 18, 15, 7, 7, 9, 7, 0, 24, 7, 7…
+$ pres_s8                 &lt;int&gt; 37, 37, 37, 48, 37, 37, 48, 37, 37, 48, 48, 37…
+$ reali_s8                &lt;int&gt; 28, 35, 35, 39, 36, 33, 50, 35, 35, 39, 39, 7,…
+$ dif_s8                  &lt;int&gt; -9, -2, -2, -9, -1, -4, 2, -2, -2, -9, -9, -30…
+$ z1_s8                   &lt;int&gt; 7, 7, 7, 9, 7, 5, 20, 7, 7, 9, 9, 2, 7, 9, 9, …
+$ z2_s8                   &lt;int&gt; 20, 26, 26, 27, 26, 26, 27, 26, 26, 27, 27, 5,…
+$ z3_s8                   &lt;int&gt; 1, 2, 2, 3, 3, 2, 3, 2, 2, 3, 3, 0, 2, 3, 2, 0…
+$ percent_z1_s8           &lt;int&gt; 25, 20, 20, 23, 19, 15, 40, 20, 20, 23, 23, 29…
+$ percent_z2_s8           &lt;int&gt; 71, 74, 74, 69, 72, 79, 54, 74, 74, 69, 69, 71…
+$ percent_z3_s8           &lt;int&gt; 4, 6, 6, 8, 8, 6, 6, 6, 6, 8, 8, 0, 6, 8, 5, 0…
+$ pres_s9                 &lt;int&gt; 51, 51, 51, 66, 51, 51, 66, 51, 51, 66, 66, 51…
+$ reali_s9                &lt;int&gt; 51, 51, 51, 66, 51, 51, 68, 51, 43, 66, 46, 0,…
+$ dif_s9                  &lt;int&gt; 0, 0, 0, 0, 0, 0, 2, 0, -8, 0, -20, -51, -12, …
+$ z1_s9                   &lt;int&gt; 39, 39, 39, 51, 39, 39, 48, 39, 31, 51, 41, 0,…
+$ z2_s9                   &lt;int&gt; 4, 4, 4, 5, 4, 4, 5, 4, 4, 5, 5, 0, 4, 5, 5, 0…
+$ z3_s9                   &lt;int&gt; 8, 8, 8, 10, 8, 8, 15, 8, 8, 10, 0, 0, 0, 10, …
+$ percent_z1_s9           &lt;int&gt; 76, 76, 76, 77, 76, 76, 71, 76, 72, 77, 89, NA…
+$ percent_z2_s9           &lt;int&gt; 8, 8, 8, 8, 8, 8, 7, 8, 9, 8, 11, NA, 10, 8, 7…
+$ percent_z3_s9           &lt;int&gt; 16, 16, 16, 15, 16, 16, 22, 16, 19, 15, 0, NA,…
+$ pres_s10                &lt;int&gt; 53, 53, 53, 68, 53, 53, 68, 53, 53, 68, 68, 53…
+$ reali_s10               &lt;int&gt; 53, 53, 53, 68, 53, 53, 70, 53, 54, 64, 73, 0,…
+$ dif_s10                 &lt;int&gt; 0, 0, 0, 0, 0, 0, 2, 0, 1, -4, 5, -53, -12, 0,…
+$ z1_s10                  &lt;int&gt; 41, 41, 41, 53, 41, 41, 55, 41, 42, 54, 58, 0,…
+$ z2_s10                  &lt;int&gt; 4, 4, 4, 5, 4, 4, 5, 4, 4, 0, 5, 0, 4, 5, 5, 4…
+$ z3_s10                  &lt;int&gt; 8, 8, 8, 10, 8, 8, 10, 8, 8, 10, 10, 0, 6, 10,…
+$ percent_z1_s10          &lt;int&gt; 77, 77, 77, 78, 77, 77, 79, 77, 78, 84, 79, NA…
+$ percent_z2_s10          &lt;int&gt; 8, 8, 8, 7, 8, 8, 7, 8, 7, 0, 7, NA, 10, 7, 7,…
+$ percent_z3_s10          &lt;int&gt; 15, 15, 15, 15, 15, 15, 14, 15, 15, 16, 14, NA…
+$ pres_s11                &lt;int&gt; 55, 55, 55, 70, 55, 55, 70, 55, 55, 70, 70, 55…
+$ reali_s11               &lt;int&gt; 55, 55, 55, 70, 55, 55, 70, 55, 55, 70, 70, 8,…
+$ dif_s11                 &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -47, 0, -29, …
+$ z1_s11                  &lt;int&gt; 43, 43, 43, 55, 43, 43, 55, 43, 43, 55, 55, 8,…
+$ z2_s11                  &lt;int&gt; 4, 4, 4, 5, 4, 4, 5, 4, 4, 5, 5, 0, 4, 5, 5, 4…
+$ z3_s11                  &lt;int&gt; 8, 8, 8, 10, 8, 8, 10, 8, 8, 10, 10, 0, 8, 6, …
+$ percent_z1_s11          &lt;int&gt; 78, 78, 78, 79, 78, 78, 79, 78, 78, 79, 79, 10…
+$ percent_z2_s11          &lt;int&gt; 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 7, 12, 7, …
+$ percent_z3_s11          &lt;int&gt; 15, 15, 15, 14, 15, 15, 14, 15, 15, 14, 14, 0,…
+$ pres_s12                &lt;int&gt; 37, 37, 37, 48, 37, 37, 48, 37, 37, 48, 48, 37…
+$ reali_s12               &lt;int&gt; 37, 37, 37, 48, 37, 37, 40, 37, 37, 48, 48, 37…
+$ dif_s12                 &lt;int&gt; 0, 0, 0, 0, 0, 0, -8, 0, 0, 0, 0, 0, -7, -10, …
+$ z1_s12                  &lt;int&gt; 30, 30, 30, 36, 30, 30, 32, 30, 30, 36, 36, 30…
+$ z2_s12                  &lt;int&gt; 2, 2, 2, 4, 2, 2, 4, 2, 2, 4, 4, 2, 2, 0, 4, 2…
+$ z3_s12                  &lt;int&gt; 5, 5, 5, 8, 5, 5, 4, 5, 5, 8, 8, 5, 4, 5, 8, 5…
+$ percent_z1_s12          &lt;int&gt; 81, 81, 81, 75, 81, 81, 80, 81, 81, 75, 75, 81…
+$ percent_z2_s12          &lt;int&gt; 5, 5, 5, 8, 5, 5, 10, 5, 5, 8, 8, 5, 7, 0, 8, …
+$ percent_z3_s12          &lt;int&gt; 14, 14, 14, 17, 14, 14, 10, 14, 14, 17, 17, 14…
+$ pres_s13                &lt;int&gt; 55, 55, 55, 70, 55, 55, 70, 55, 55, 70, 70, 55…
+$ reali_s13               &lt;int&gt; 55, 55, 55, 70, 55, 55, 69, 53, 56, 33, 70, 47…
+$ dif_s13                 &lt;int&gt; 0, 0, 0, 0, 0, 0, -1, -2, 1, -37, 0, -8, 7, 6,…
+$ z1_s13                  &lt;int&gt; 43, 43, 43, 55, 51, 43, 53, 43, 44, 33, 55, 35…
+$ z2_s13                  &lt;int&gt; 4, 4, 4, 5, 4, 4, 6, 4, 4, 0, 5, 4, 4, 5, 6, 4…
+$ z3_s13                  &lt;int&gt; 8, 8, 8, 10, 0, 8, 10, 6, 8, 0, 10, 8, 9, 13, …
+$ percent_z1_s13          &lt;int&gt; 78, 78, 78, 79, 93, 78, 77, 81, 79, 100, 79, 7…
+$ percent_z2_s13          &lt;int&gt; 7, 7, 7, 7, 7, 7, 9, 8, 7, 0, 7, 9, 6, 7, 8, 7…
+$ percent_z3_s13          &lt;int&gt; 15, 15, 15, 14, 0, 15, 14, 11, 14, 0, 14, 17, …
+$ pres_s14                &lt;int&gt; 57, 57, 57, 73, 57, 57, 73, 57, 57, 73, 73, 57…
+$ reali_s14               &lt;int&gt; 55, 57, 57, 74, 57, 57, 78, 57, 57, 73, 65, 57…
+$ dif_s14                 &lt;int&gt; -2, 0, 0, 1, 0, 0, 5, 0, 0, 0, -8, 0, -18, 0, …
+$ z1_s14                  &lt;int&gt; 43, 45, 45, 61, 57, 45, 65, 45, 45, 60, 52, 45…
+$ z2_s14                  &lt;int&gt; 4, 4, 4, 5, 0, 4, 5, 4, 4, 5, 5, 4, 4, 5, 5, 4…
+$ z3_s14                  &lt;int&gt; 8, 8, 8, 8, 0, 8, 8, 8, 8, 8, 8, 8, 4, 8, 12, …
+$ percent_z1_s14          &lt;int&gt; 78, 79, 79, 82, 100, 79, 83, 79, 79, 82, 80, 7…
+$ percent_z2_s14          &lt;int&gt; 7, 7, 7, 7, 0, 7, 6, 7, 7, 7, 8, 7, 10, 7, 9, …
+$ percent_z3_s14          &lt;int&gt; 15, 14, 14, 11, 0, 14, 10, 14, 14, 11, 12, 14,…
+$ pres_s15                &lt;int&gt; 60, 60, 60, 77, 60, 60, 77, 60, 60, 77, 77, 60…
+$ reali_s15               &lt;int&gt; 60, 60, 62, 77, 52, 60, 82, 53, 60, 77, 77, 60…
+$ dif_s15                 &lt;int&gt; 0, 0, 2, 0, -8, 0, 5, -7, 0, 0, 0, 0, 0, 0, -2…
+$ z1_s15                  &lt;int&gt; 48, 48, 50, 64, 48, 48, 68, 49, 48, 64, 64, 48…
+$ z2_s15                  &lt;int&gt; 4, 4, 4, 5, 4, 4, 6, 4, 4, 5, 5, 4, 4, 5, 0, 4…
+$ z3_s15                  &lt;int&gt; 8, 8, 8, 8, 0, 8, 8, 0, 8, 8, 8, 8, 8, 8, 11, …
+$ percent_z1_s15          &lt;int&gt; 80, 80, 81, 83, 92, 80, 83, 92, 80, 83, 83, 80…
+$ percent_z2_s15          &lt;int&gt; 7, 7, 6, 6, 8, 7, 7, 8, 7, 6, 6, 7, 7, 6, 0, 7…
+$ percent_z3_s15          &lt;int&gt; 13, 13, 13, 10, 0, 13, 10, 0, 13, 10, 10, 13, …
+$ pres_s16                &lt;int&gt; 40, 40, 40, 51, 40, 40, 51, 40, 40, 51, 51, 40…
+$ reali_s16               &lt;int&gt; 40, 39, 39, 51, 7, 40, 44, 40, 40, 45, 28, 40,…
+$ dif_s16                 &lt;int&gt; 0, -1, -1, 0, -33, 0, -7, 0, 0, -6, -23, 0, -1…
+$ z1_s16                  &lt;int&gt; 35, 34, 34, 43, 7, 35, 37, 35, 35, 43, 26, 35,…
+$ z2_s16                  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 12, …
+$ z3_s16                  &lt;int&gt; 5, 5, 5, 8, 0, 5, 7, 5, 5, 2, 2, 5, 4, 2, 2, 5…
+$ percent_z1_s16          &lt;int&gt; 88, 87, 87, 84, 100, 88, 84, 88, 88, 96, 93, 8…
+$ percent_z2_s16          &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 25,…
+$ percent_z3_s16          &lt;int&gt; 13, 13, 13, 16, 0, 13, 16, 13, 13, 4, 7, 13, 1…
+$ l1_s0                   &lt;dbl&gt; 9.70, 11.25, 9.80, 13.55, 10.25, 9.10, 11.80, …
+$ l2_s0                   &lt;dbl&gt; 10.55, 12.35, 10.85, 14.65, 11.35, 10.35, 13.0…
+$ l1_s8                   &lt;dbl&gt; 9.95, 11.45, 10.50, 14.05, 10.70, 10.15, 14.10…
+$ l2_s8                   &lt;dbl&gt; 10.75, 12.55, 11.65, 15.10, 11.80, 11.35, 15.2…
+$ l1_s16                  &lt;dbl&gt; 10.05, 11.80, 10.65, 14.35, 11.00, 11.10, 14.0…
+$ l2_s16                  &lt;dbl&gt; 10.95, 12.80, 11.60, 15.30, 12.10, 12.10, 15.2…
+$ maratona_menos_4h       &lt;chr&gt; "4h ou mais", "menos de 4h", "4h ou mais", "me…</code></pre>
+</div>
+</div>
+<section id="variáveis-quantitativas" class="level2">
+<h2 class="anchored" data-anchor-id="variáveis-quantitativas">Variáveis quantitativas</h2>
+<p>Número de variáveis:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ncol</span>(<span class="fu">select_if</span>(dados, is.numeric))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 205</code></pre>
+</div>
+</div>
+<p>Número de valores faltantes:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>na_count <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">select_if</span>(dados, is.numeric), <span class="cf">function</span>(y) <span class="fu">sum</span>(<span class="fu">is.na</span>(y)))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>na_count <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(na_count)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>na_count <span class="sc">|&gt;</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(na_count))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                      na_count
+percent_z1_s1                2
+percent_z2_s1                2
+percent_z3_s1                2
+percent_z1_s4                2
+percent_z2_s4                2
+percent_z3_s4                2
+reali_s1                     1
+dif_s1                       1
+z1_s1                        1
+z2_s1                        1
+z3_s1                        1
+reali_s2                     1
+dif_s2                       1
+z1_s2                        1
+z2_s2                        1
+z3_s2                        1
+percent_z1_s2                1
+percent_z2_s2                1
+percent_z3_s2                1
+reali_s3                     1
+dif_s3                       1
+z1_s3                        1
+z2_s3                        1
+z3_s3                        1
+percent_z1_s3                1
+percent_z2_s3                1
+percent_z3_s3                1
+reali_s4                     1
+z1_s4                        1
+z2_s4                        1
+z3_s4                        1
+pres_s5                      1
+reali_s5                     1
+z1_s5                        1
+z2_s5                        1
+z3_s5                        1
+percent_z1_s5                1
+percent_z2_s5                1
+percent_z3_s5                1
+reali_s6                     1
+z1_s6                        1
+z2_s6                        1
+z3_s6                        1
+percent_z1_s6                1
+percent_z2_s6                1
+percent_z3_s6                1
+reali_s7                     1
+z1_s7                        1
+z2_s7                        1
+z3_s7                        1
+percent_z1_s7                1
+percent_z2_s7                1
+percent_z3_s7                1
+percent_z1_s9                1
+percent_z2_s9                1
+percent_z3_s9                1
+percent_z1_s10               1
+percent_z2_s10               1
+percent_z3_s10               1
+maratona_km_h_real           0
+tt_3_km_h_real               0
+tt_2_km_h_real               0
+tt_1_km_h_real               0
+z1_2_km_h_real               0
+z1_1_km_h_real               0
+t1000_s12_tempo_real         0
+t1000_s12_km_h               0
+t2000_s12_tempo_real         0
+t2000_s12_km_h               0
+t3000_s12_tempo_real         0
+t3000_s12_km_h               0
+vc_s12_real                  0
+d_s12_real                   0
+r_s12                        0
+rmse_s12                     0
+t1000_s4_km_h                0
+t2000_s4_tempo_real          0
+t2000_s4_km_h                0
+t3000_s4_tempo_real          0
+t3000_s4_km_h                0
+vc_s4_real                   0
+d_s4_real                    0
+r_s4                         0
+rmse_s4                      0
+x1km_fresco_tempo_s0         0
+x1km_fresco_vm_s0            0
+d_21km_s0_real               0
+x1km_pos_tempo_s0            0
+x1km_pos_vm_s0               0
+queda_s0                     0
+x1km_fresco_tempo_s4         0
+x1km_fresco_vm_s4            0
+d_21km_s4_real               0
+x1km_pos_tempo_s4            0
+x1km_pos_vm_s4               0
+queda_s4                     0
+x1km_fresco_tempo_s8         0
+x1km_fresco_vm_s8            0
+d_21km_s8_real               0
+x1km_pos_tempo_s8            0
+x1km_pos_vm_s8               0
+queda_s8                     0
+x1km_fresco_tempo_s12        0
+x1km_fresco_vm_s12           0
+d_21km_s12_real              0
+x1km_pos_tempo_s12           0
+x1km_pos_vm_s12              0
+queda_s12                    0
+x1km_fresco_tempo_s16        0
+x1km_fresco_vm_s16           0
+d_21km_s16_real_vm           0
+x1km_pos_tempo_s16           0
+x1km_pos_vm_s16              0
+queda_s16                    0
+pres_s1                      0
+pres_s2                      0
+pres_s3                      0
+pres_s4                      0
+dif_s4                       0
+dif_s5                       0
+pres_s6                      0
+dif_s6                       0
+pres_s7                      0
+dif_s7                       0
+pres_s8                      0
+reali_s8                     0
+dif_s8                       0
+z1_s8                        0
+z2_s8                        0
+z3_s8                        0
+percent_z1_s8                0
+percent_z2_s8                0
+percent_z3_s8                0
+pres_s9                      0
+reali_s9                     0
+dif_s9                       0
+z1_s9                        0
+z2_s9                        0
+z3_s9                        0
+pres_s10                     0
+reali_s10                    0
+dif_s10                      0
+z1_s10                       0
+z2_s10                       0
+z3_s10                       0
+pres_s11                     0
+reali_s11                    0
+dif_s11                      0
+z1_s11                       0
+z2_s11                       0
+z3_s11                       0
+percent_z1_s11               0
+percent_z2_s11               0
+percent_z3_s11               0
+pres_s12                     0
+reali_s12                    0
+dif_s12                      0
+z1_s12                       0
+z2_s12                       0
+z3_s12                       0
+percent_z1_s12               0
+percent_z2_s12               0
+percent_z3_s12               0
+pres_s13                     0
+reali_s13                    0
+dif_s13                      0
+z1_s13                       0
+z2_s13                       0
+z3_s13                       0
+percent_z1_s13               0
+percent_z2_s13               0
+percent_z3_s13               0
+pres_s14                     0
+reali_s14                    0
+dif_s14                      0
+z1_s14                       0
+z2_s14                       0
+z3_s14                       0
+percent_z1_s14               0
+percent_z2_s14               0
+percent_z3_s14               0
+pres_s15                     0
+reali_s15                    0
+dif_s15                      0
+z1_s15                       0
+z2_s15                       0
+z3_s15                       0
+percent_z1_s15               0
+percent_z2_s15               0
+percent_z3_s15               0
+pres_s16                     0
+reali_s16                    0
+dif_s16                      0
+z1_s16                       0
+z2_s16                       0
+z3_s16                       0
+percent_z1_s16               0
+percent_z2_s16               0
+percent_z3_s16               0
+l1_s0                        0
+l2_s0                        0
+l1_s8                        0
+l2_s8                        0
+l1_s16                       0
+l2_s16                       0</code></pre>
+</div>
+</div>
+<p>Distribuição das variáveis mais importantes:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>dados_filtrados <span class="ot">&lt;-</span> dados <span class="sc">|&gt;</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">|&gt;</span> </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">contains</span>(<span class="fu">c</span>(<span class="st">"tempo_real"</span>, <span class="st">"pace"</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> maratona_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "maratona em km/h" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)<span class="sc">+</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> tt_3_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Time trail de 21km - avaliação 3" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Time trail de 21km - avaliação 3 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> tt_2_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Time trail de 21km - avaliação 2" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Time trail de 21km - avaliação 2 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> tt_1_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Time trail de 21km - avaliação 1" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Time trail de 21km - avaliação 1 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> z1_2_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "21km em Z1 - avaliação 2" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"21km em Z1 - avaliação 2 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> z1_1_km_h_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "21km em Z1 - avaliação 2" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"21km em Z1 - avaliação 2 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t1000_s4_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 1km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 1km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t2000_s4_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 2km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 2km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t3000_s4_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 3km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 3km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> vc_s4_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Velocidade crítica - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Velocidade crítica - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> d_s4_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4"</span>)<span class="sc">+</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Distância (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> r_s4, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4"</span>)<span class="sc">+</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Distância (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t1000_s12_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 1km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 1km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t2000_s12_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 2km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 2km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> t3000_s12_km_h, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Teste 3km - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Teste 3km - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> vc_s12_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">'Distribuição da variável "Velocidade crítica - Semana 4" em cada grupo'</span>)<span class="sc">+</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Velocidade crítica - Semana 4 (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> dados) <span class="sc">+</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> maratona_menos_4h, <span class="at">y =</span> d_s12_real, <span class="at">fill =</span> grupo)) <span class="sc">+</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4"</span>)<span class="sc">+</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Distância (km/h)"</span>)<span class="sc">+</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"G1"</span> <span class="ot">=</span> <span class="st">"#DCEAB2"</span>, <span class="st">"G2"</span> <span class="ot">=</span> <span class="st">"#A8CCC9"</span>))<span class="sc">+</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()<span class="sc">+</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="analise_02_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Número de variáveis qualitativas:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ncol</span>(<span class="fu">select_if</span>(dados, is.character))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 32</code></pre>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

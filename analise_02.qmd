@@ -1,0 +1,273 @@
+---
+title: "Análise exploratória dos dados - Movimenta UFPR"
+format: html
+editor: visual
+theme: cosmo
+---
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
+library(janitor)
+library(lme4)
+library(lmerTest)
+library(rstatix)
+library(ggplot2)
+library(readxl)
+library(hms)
+
+dados <- read_xlsx("Dados_06.07.xlsx") %>% clean_names() %>% 
+  type.convert(as.is = TRUE) %>% drop_na(codigo) |>  select(-c(
+    maratona_pace_km1,
+    maratona_fc_km1,
+    maratona_percent_vc_fc,
+    starts_with("fazer_as"))) |> mutate(maratona_tempo = as.double(maratona_tempo),
+                                        maratona_tempo = as_hms(maratona_tempo * 86400),
+                                        maratona_tempo = format(as.POSIXct(maratona_tempo), "%H:%M:%S"),
+                                        maratona_menos_4h = ifelse(as_hms(maratona_tempo) < as_hms("04:00:00"), "menos de 4h", "4h ou mais"))
+
+dicionario <- read_excel("Dados_06.07.xlsx", sheet = 2) 
+```
+
+# Estrutura dos dados
+
+Quantidade de atletas:
+```{r}
+nrow(dados) 
+```
+
+Número de variáveis: 
+```{r}
+ncol(dados)
+```
+
+Primeiras 6 linhas dos dados:
+```{r}
+head(dados)
+```
+
+Variáveis e seus tipos:
+```{r}
+glimpse(dados)
+```
+
+
+## Variáveis quantitativas
+
+Número de variáveis:
+```{r}
+ncol(select_if(dados, is.numeric))
+```
+
+Número de valores faltantes:
+```{r}
+na_count <- sapply(select_if(dados, is.numeric), function(y) sum(is.na(y)))
+na_count <- data.frame(na_count)
+na_count |> arrange(desc(na_count))
+```
+
+Distribuição das variáveis mais importantes:
+
+```{r}
+dados_filtrados <- dados |> 
+  select_if(is.numeric) |> 
+  select(-contains(c("tempo_real", "pace")))
+```
+
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = maratona_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "maratona em km/h" em cada grupo')+
+  xlab("")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = tt_3_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "Time trail de 21km - avaliação 3" em cada grupo')+
+  labs(y = "Time trail de 21km - avaliação 3 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = tt_2_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "Time trail de 21km - avaliação 2" em cada grupo')+
+  labs(y = "Time trail de 21km - avaliação 2 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = tt_1_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "Time trail de 21km - avaliação 1" em cada grupo')+
+  labs(y = "Time trail de 21km - avaliação 1 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = z1_2_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "21km em Z1 - avaliação 2" em cada grupo')+
+  labs(y = "21km em Z1 - avaliação 2 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = z1_1_km_h_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "21km em Z1 - avaliação 2" em cada grupo')+
+  labs(y = "21km em Z1 - avaliação 2 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t1000_s4_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 1km - Semana 4" em cada grupo')+
+  labs(y = "Teste 1km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t2000_s4_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 2km - Semana 4" em cada grupo')+
+  labs(y = "Teste 2km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t3000_s4_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 3km - Semana 4" em cada grupo')+
+  labs(y = "Teste 3km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = vc_s4_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "Velocidade crítica - Semana 4" em cada grupo')+
+  labs(y = "Velocidade crítica - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = d_s4_real, fill = grupo)) +
+  ggtitle("Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4")+
+  labs(y = "Distância (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = r_s4, fill = grupo)) +
+  ggtitle("Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4")+
+  labs(y = "Distância (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t1000_s12_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 1km - Semana 4" em cada grupo')+
+  labs(y = "Teste 1km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t2000_s12_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 2km - Semana 4" em cada grupo')+
+  labs(y = "Teste 2km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = t3000_s12_km_h, fill = grupo)) +
+  ggtitle('Distribuição da variável "Teste 3km - Semana 4" em cada grupo')+
+  labs(y = "Teste 3km - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = vc_s12_real, fill = grupo)) +
+  ggtitle('Distribuição da variável "Velocidade crítica - Semana 4" em cada grupo')+
+  labs(y = "Velocidade crítica - Semana 4 (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+
+```{r}
+ggplot(data = dados) +
+  geom_boxplot(mapping = aes(x = maratona_menos_4h, y = d_s12_real, fill = grupo)) +
+  ggtitle("Distância máxima que pode ser percorrida acima da velocidade crítica - Semana 4")+
+  labs(y = "Distância (km/h)")+
+  scale_fill_manual(values = c("G1" = "#DCEAB2", "G2" = "#A8CCC9"))+
+  theme_minimal()+
+  xlab("")
+```
+```{r}
+ggplot(data = dados)+
+  geom_bar(mapping = aes(x = maratona_menos_4h), fill = "#A8CCC9")+
+  theme_minimal()+
+  xlab("")
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Número de variáveis qualitativas:
+```{r}
+ncol(select_if(dados, is.character))
+```
